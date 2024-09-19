@@ -4,9 +4,104 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIS Showcase</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        * {
+        margin: 0;
+        padding: 5px;  
+        box-sizing: border-box;
+        }
+        #map {
+            height: 900px; /* Set the height of the map */
+        }
+
+        body {
+            font-family: Arial;
+            justify-content: space-between ;
+            align-items: center; 
+            text-align: center;
+        }
+        .container {
+            max-width: 768px; 
+        }
+    </style>
  </head>
 
  <body>
-    
+    <div class="container">
+
+    <h1>Trial</h1>
+
+    <div id="map"></div>
+
+</div>
+
+<script>
+    // Initialize the map
+    var map = L.map('map').setView([24.7637, 90.4056], 13); // Use your desired coordinates
+
+    // Add a tile layer (in this example, we'll use the Mapnik style)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Array of GeoJSON file paths
+    const geoJsonFiles = [
+        'BaseMap.geojson',
+        'Roads.geojson',
+    ];
+
+    // Function to fetch and add GeoJSON layers to the map
+    function loadGeoJsonFiles(files) {
+        Promise.all(files.map(file => 
+            fetch(file)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Check if the data is in GeoJSON format
+                    if (data.features) {
+                        return data;
+                    } else {
+                        // Wrap the data in a GeoJSON-compatible format
+                        return {
+                            type: "FeatureCollection",
+                            features: [
+                                {
+                                    type: "Feature",
+                                    geometry: null,
+                                    properties: data
+                                }
+                            ]
+                        };
+                    }
+                })
+        ))
+        .then(dataArray => {
+            dataArray.forEach(data => {
+                L.geoJSON(data, {
+                    onEachFeature: function (feature, layer) {
+                        // Customize popup content if needed
+                        layer.bindPopup(feature.properties.name || "No Name");
+                    }
+                }).addTo(map);
+            });
+        })
+        .catch(err => console.error('Fetch error:', err));
+    }
+
+    // Load the GeoJSON files
+    loadGeoJsonFiles(geoJsonFiles);
+
+</script>
+
  </body>
  </html>
